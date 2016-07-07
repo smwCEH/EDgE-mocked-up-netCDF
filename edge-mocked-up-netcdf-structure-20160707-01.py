@@ -9,6 +9,7 @@ import pyproj
 import math
 import pandas as pd
 import glob
+import matplotlib.pyplot as plt
 
 
 # Capture start_time
@@ -73,6 +74,57 @@ NODATA = -9999.0
 
 # Seed the Numpy random number generator
 np.random.seed(123)
+
+
+ts = pd.Series(np.random.randn(17), index=pd.date_range(start='31/12/2019', end='01/01/2100', freq='5A'))
+ts = ts.cumsum()
+print(ts)
+ts.plot()
+df = pd.DataFrame(np.random.randn(17, 4), index=ts.index, columns=list('ABCD'))
+df = df.cumsum()
+print(df)
+df.plot()
+plt.show()
+
+
+
+sys.exit()
+
+
+
+print('\n\nLooping for indicators, RCPs, GCMs and HydroModels...')
+indicator_count = 0
+# for indicator in range(1, 21, 1):
+for indicator in range(1, 2, 1):
+    indicator_string = str(indicator).zfill(2)
+    print('{}indicator:\t{}'.format('\t' * 1, indicator_string))
+    #
+    for rcp in ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']:
+        rcp_string = rcp
+        print('{}RCP:\t{}'.format('\t' * 2, rcp_string))
+        #
+        for gcm in ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']:
+            gcm_string = gcm
+            print('{}GCM:\t{}'.format('\t' * 3, gcm_string))
+            #
+            for hydromodel in ['VIC', 'MHM', 'NOAA']:
+                hydromodel_string = hydromodel
+                print('{}HydroModel:\t{}'.format('\t' * 4, hydromodel_string))
+                #
+                indicator_count += 1
+                #
+                netcdf_variable = rcp_string + '_' +\
+                                  gcm_string + '_' +\
+                                  hydromodel_string + '_' +\
+                                  indicator_string
+                print('{}netCDF variable:\t{}'.format('\t' * 5, netcdf_variable))
+print('\n\nLooped for indicators, RCPs, GCMs and HydroModels.')
+
+
+print('indicator_count:\t\t{}'.format(indicator_count))
+
+
+sys.exit()
 
 
 in_netcdf_file = r'Z:\thredds\edge\E-OBS_mHM_SMI_monthly_1971_2014.nc'
