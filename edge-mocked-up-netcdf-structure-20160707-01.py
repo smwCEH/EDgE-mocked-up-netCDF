@@ -76,55 +76,31 @@ NODATA = -9999.0
 np.random.seed(123)
 
 
-ts = pd.Series(np.random.randn(17), index=pd.date_range(start='31/12/2019', end='01/01/2100', freq='5A'))
-ts = ts.cumsum()
-print(ts)
-ts.plot()
-df = pd.DataFrame(np.random.randn(17, 4), index=ts.index, columns=list('ABCD'))
-df = df.cumsum()
-print(df)
-df.plot()
-plt.show()
+# df = pd.DataFrame(np.arange(start=1, stop=18, step=1, dtype=np.int),
+#                   index=pd.date_range(start='31/12/2019', end='01/01/2100', freq='5A'),
+#                   columns=['id'])
+# random_middle, random_width = 1.00, 0.05
+# random_min, random_max = random_middle - random_width, random_middle + random_width
+# for rcp in ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']:
+#     print('RCP:\t\t{}'.format(rcp))
+#     m = float(rcp[3:])
+#     print('\tm:\t\t{}'.format(m))
+#     df[rcp + '_equation'] = ((df['id'] * m) + 0.0) / 30.0
+#     df[rcp + '_random'] = np.random.uniform(low=random_min, high=random_max, size=(17))
+#     df[rcp + '_value'] = df[rcp + '_equation'] * df[rcp + '_random']
+# # print(df)
+# df2 = df[['RCP2.6_value', 'RCP4.5_value', 'RCP6.0_value', 'RCP8.5_value']]
+# print(df2)
+# df2.plot(kind='line')
+# plt.show()
 
 
-
-sys.exit()
-
-
-
-print('\n\nLooping for indicators, RCPs, GCMs and HydroModels...')
-indicator_count = 0
-# for indicator in range(1, 21, 1):
-for indicator in range(1, 2, 1):
-    indicator_string = str(indicator).zfill(2)
-    print('{}indicator:\t{}'.format('\t' * 1, indicator_string))
-    #
-    for rcp in ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']:
-        rcp_string = rcp
-        print('{}RCP:\t{}'.format('\t' * 2, rcp_string))
-        #
-        for gcm in ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']:
-            gcm_string = gcm
-            print('{}GCM:\t{}'.format('\t' * 3, gcm_string))
-            #
-            for hydromodel in ['VIC', 'MHM', 'NOAA']:
-                hydromodel_string = hydromodel
-                print('{}HydroModel:\t{}'.format('\t' * 4, hydromodel_string))
-                #
-                indicator_count += 1
-                #
-                netcdf_variable = rcp_string + '_' +\
-                                  gcm_string + '_' +\
-                                  hydromodel_string + '_' +\
-                                  indicator_string
-                print('{}netCDF variable:\t{}'.format('\t' * 5, netcdf_variable))
-print('\n\nLooped for indicators, RCPs, GCMs and HydroModels.')
-
-
-print('indicator_count:\t\t{}'.format(indicator_count))
-
-
-sys.exit()
+# Define the folder to write netCDF files in
+NETCDF_FOLDER = os.path.dirname(os.path.abspath(__file__))
+NETCDF_FOLDER = os.path.join(NETCDF_FOLDER, 'netcdf')
+print('\n\nnetcdf_folder:\t\t\t{}'.format(NETCDF_FOLDER))
+if not os.path.exists(NETCDF_FOLDER):
+    os.makedirs(NETCDF_FOLDER)
 
 
 in_netcdf_file = r'Z:\thredds\edge\E-OBS_mHM_SMI_monthly_1971_2014.nc'
@@ -191,6 +167,11 @@ print(longitudes.shape)
 print(longitudes[:].min(), longitudes[:].max())
 
 
+# Define 2D array shape
+TWOD_ARRAY_SHAPE = (len(ys), len(xs))
+print('\n\nTWOD_ARRAY_SHAPE:\t\t{}'.format(TWOD_ARRAY_SHAPE))
+
+
 # Define time origin, units, calendar, and end
 TIME_ORIGIN = datetime.datetime(year=2019,
                                 month=1,
@@ -249,9 +230,9 @@ out_proj = pyproj.Proj(init='epsg:4326')
 print('out_proj.srs:\t\t{}'.format(out_proj.srs))
 
 
-latitude_array = np.empty([len(ys), len(xs)])
+latitude_array = np.empty(shape=TWOD_ARRAY_SHAPE)
 print('\n\nlatitude_array.shape:\t\t{}'.format(latitude_array.shape))
-longitude_array = np.empty([len(ys), len(xs)])
+longitude_array = np.empty(shape=TWOD_ARRAY_SHAPE)
 print('longitude_array.shape:\t\t{}'.format(longitude_array.shape))
 
 
@@ -279,6 +260,10 @@ print('\n\nlatitude_array\n\tlatitude_array.min():\t\t{}\n\tlatitude_array.max()
                                                                                                 latitude_array.max()))
 print('longitude_array\n\tlongitude_array.min():\t\t{}\n\tlongitude_array.max():\t\t{}'.format(longitude_array.min(),
                                                                                                longitude_array.max()))
+
+
+# Set 2D mask based upon the first time slice of the SMI variable in the in netCDF file
+in_netcdf_file_mask = in_dataset.variables['SMI'][0, :, :]
 
 
 # Define out netCDF file netCDF format
@@ -384,35 +369,27 @@ def create_netcdf(out_netcdf_file_path):
     return root_group
 
 
-rows01 = np.arange(1, 951)
-rows02 = np.repeat(rows01, 1000)
-rows03 = rows02.reshape((950, 1000))
+rows01 = np.arange(1, TWOD_ARRAY_SHAPE[0] + 1)
+rows02 = np.repeat(rows01, TWOD_ARRAY_SHAPE[1])
+rows03 = rows02.reshape(TWOD_ARRAY_SHAPE)
 rows04 = np.flipud(rows03)
 rows05 = rows04 * 0.001
 # print(rows05)
-# print(rows05.shape)
+print(rows05.shape)
 
 
-cols01 = np.arange(1, 1001)
-cols02 = np.tile(cols01, 950)
-cols03 = cols02.reshape((950, 1000))
+cols01 = np.arange(1, TWOD_ARRAY_SHAPE[1] + 1)
+cols02 = np.tile(cols01, TWOD_ARRAY_SHAPE[0])
+cols03 = cols02.reshape(TWOD_ARRAY_SHAPE)
 cols04 = cols03 * 0.001
 # print(cols04)
-# print(cols04.shape)
-
-
-# Define the folder to write netCDF files in
-netcdf_folder = os.path.dirname(os.path.abspath(__file__))
-netcdf_folder = os.path.join(netcdf_folder, 'netcdf')
-print('\n\nnetcdf_folder:\t\t\t{}'.format(netcdf_folder))
-if not os.path.exists(netcdf_folder):
-    os.makedirs(netcdf_folder)
+print(cols04.shape)
 
 
 # Define out netCDF file path
 # out_netcdf_file_path = os.path.splitext(__file__)[0] + '.nc'
 single_netcdf_file_path = 'edge-mockup-{}.nc'.format(datetime.datetime.now().strftime('%Y%m%d'))
-single_netcdf_file_path = os.path.join(netcdf_folder, single_netcdf_file_path)
+single_netcdf_file_path = os.path.join(NETCDF_FOLDER, single_netcdf_file_path)
 print('\n\nsingle_netcdf_file_path:\t{0}'.format(single_netcdf_file_path))
 
 
@@ -420,95 +397,121 @@ print('\n\nsingle_netcdf_file_path:\t{0}'.format(single_netcdf_file_path))
 single_netcdf_file = create_netcdf(single_netcdf_file_path)
 
 
-ENSEMBLES = 45
+# INDICATORS = range(1, 21, 1)
+INDICATORS = range(1, 2, 1)
+INDICATORS = ['indicator' + str(i).zfill(2) for i in INDICATORS]
+RCP = ['RCP2_6', 'RCP4_5', 'RCP6_0', 'RCP8_5']
+# RCP = ['RCP2_6']
+GCM = ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']
+# GCM = ['HadGEM']
+HYDROMODEL = ['VIC', 'MHM', 'NOAA']
 
 
-VARIABLES = 3
-
-
-in_netcdf_file_mask = in_dataset.variables['SMI'][0, :, :]
-
-
-print('\n\nLooping through ensembles...')
-for ensemble in range(1, ENSEMBLES + 1, 1):
-    print('\tensemble:\t\t\t{}'.format(str(ensemble).zfill(2)))
-    # Define the multiple netCDF file path
-    multiple_netcdf_file_path = 'edge-mockup-ensemble{}-{}.nc'.format(str(ensemble).zfill(2),
-                                                                      datetime.datetime.now().strftime('%Y%m%d'))
-    multiple_netcdf_file_path = os.path.join(netcdf_folder, multiple_netcdf_file_path)
-    print('\t\tmultiple_netcdf_file_path:\t{0}'.format(multiple_netcdf_file_path))
-    # Create the multiple netCDF file
-    multiple_netcdf_file = create_netcdf(multiple_netcdf_file_path)
+# Nested loops to create single and multiple output netCDF files
+print('\n\nLooping for indicators, RCPs, GCMs and HydroModels...')
+indicator_count = 0
+for indicator in INDICATORS:
+    print('{}indicator:\t{}'.format('\t' * 1,
+                                    indicator))
     #
-    for variable in range(1, VARIABLES + 1, 1):
+    for rcp in RCP:
+        print('{}RCP:\t{}'.format('\t' * 2,
+                                  rcp))
         #
-        print('\t\tvariable:\t\t\t{}'.format(str(variable).zfill(2)))
-        #
-        multiple_variable = multiple_netcdf_file.createVariable(varname='variable{}'.format(str(variable).zfill(2)),
-                                                                datatype='float32',
-                                                                dimensions=('time', 'y', 'x'),
-                                                                fill_value=NODATA,
-                                                                zlib=True)
-        # single_variable = single_netcdf_file.createVariable(varname='/ensemble{}/variable{}'.format(str(ensemble).zfill(2),
-        #                                                                                             str(variable).zfill(2)),
-        #                                                     datatype='float32',
-        #                                                     dimensions=('time', 'y', 'x'),
-        #                                                     fill_value=NODATA,
-        #                                                     zlib=True)
-        single_variable = single_netcdf_file.createVariable(varname='/ensemble{}_variable{}'.format(str(ensemble).zfill(2),
-                                                                                                    str(variable).zfill(2)),
-                                                            datatype='float32',
-                                                            dimensions=('time', 'y', 'x'),
-                                                            fill_value=NODATA,
-                                                            zlib=True)
-        variable_min, variable_max = 9.99E10, -9.99E10
-        for slice in range(0, time_array.size, 1):
-            # print('\t\t\tslice:\t\t\t\t{}'.format(slice))
-            random01 = np.random.randn(950, 1000)
-            day = time_steps[slice]
-            # print('\t\tday:\t\t{}'.format(day))
-            day_of_year = int(day.strftime('%j'))
-            # print('\t\tday of year:\t\t{}'.format(day_of_year))
-            annual_cycle = 10 + 15 * np.sin(2 * np.pi * (int(day.strftime('%j')) / 365.25 - 0.28))
-            # print('\t\tannual_cycle:\t\t{}'.format(annual_cycle))
-            if variable == 1:
-                base = 50 + 15 * annual_cycle
-            elif variable == 2:
-                base = 30 + 15 * annual_cycle
-            elif variable == 3:
-                base = 10 + 15 * annual_cycle
-            else:
-                sys.exit('\n\nVariable {} not coded for!!!\n\n'.format(variable))
-            mask = base + 3 * random01
-            mask = mask * rows05 * cols04
-            mask = np.ma.array(mask, mask=in_netcdf_file_mask.mask)
-            # print('\t\t\t\tmask.shape:\t\t\t{}'.format(mask.shape))
-            # print('\t\t\t\tmask.min():\t\t\t{}\n\t\t\t\tmask.max():\t\t\t{}'.format(round(float(mask.min()), 8), round(float(mask.max()), 8)))
-            multiple_variable[slice] = mask
-            single_variable[slice] = mask
-            variable_min = min(variable_min, mask.min())
-            variable_max = max(variable_max, mask.max())
-            del mask
-        # print('\t\tvariable_min:\t\t\t{}\n\t\tvariable_max:\t\t\t{}'.format(variable_min, variable_max))
-        multiple_variable.standard_name = single_variable.standard_name = ''
-        multiple_variable.long_name = single_variable.long_name = 'variable {}'.format(str(variable).zfill(2))
-        multiple_variable.units = single_variable.units = '-'
-        multiple_variable.coordinates = single_variable.coordinates = 'y x'
-        multiple_variable.grid_mapping = single_variable.grid_mapping = 'lambert_azimuthal_equal_area'
-        multiple_variable.missing_value = single_variable.missing_value = NODATA
-        multiple_variable.valid_min = single_variable.valid_min = round(variable_min, 4)
-        multiple_variable.valid_max = single_variable.valid_max = round(variable_max, 4)
-        # ''
-        # 'variable {}'.format(str(variable).zfill(2))
-        # '-'
-        # 'y x'
-        # 'lambert_azimuthal_equal_area'
-        # NODATA
-        # round(variable_min, 4)
-        # round(variable_max, 4)
-    #
-    # Close the multiple netCDF file
-    multiple_netcdf_file.close()
+        for gcm in GCM:
+            print('{}GCM:\t{}'.format('\t' * 3,
+                                      gcm))
+            #
+            for hydromodel in HYDROMODEL:
+                print('{}HydroModel:\t{}'.format('\t' * 4,
+                                                 hydromodel))
+                #
+                indicator_count += 1
+                #
+                netcdf_variable = '{}_{}_{}_{}'.format(rcp,
+                                                       gcm,
+                                                       hydromodel,
+                                                       indicator)
+                print('{}netCDF variable:\t{}'.format('\t' * 5,
+                                                      netcdf_variable))
+                #
+                # Define the multiple netCDF file path
+                multiple_netcdf_file_path = 'edge-mockup-{}-{}.nc'.format(datetime.datetime.now().strftime('%Y%m%d'),
+                                                                          netcdf_variable)
+                multiple_netcdf_file_path = os.path.join(NETCDF_FOLDER, multiple_netcdf_file_path)
+                print('{}multiple_netcdf_file_path:\t{}'.format('\t' * 6,
+                                                                 multiple_netcdf_file_path))
+                # Create the multiple netCDF file
+                multiple_netcdf_file = create_netcdf(multiple_netcdf_file_path)
+                #
+                # Define the variable for the multiple output netCDF files
+                multiple_variable = multiple_netcdf_file.createVariable(varname=netcdf_variable,
+                                                                        datatype='float32',
+                                                                        dimensions=('time', 'y', 'x'),
+                                                                        fill_value=NODATA,
+                                                                        zlib=True)
+                #
+                # Define the variable for the single output netCDF file
+                single_variable = single_netcdf_file.createVariable(varname=netcdf_variable,
+                                                                    datatype='float32',
+                                                                    dimensions=('time', 'y', 'x'),
+                                                                    fill_value=NODATA,
+                                                                    zlib=True)
+                variable_min, variable_max = 9.99E10, -9.99E10
+                for slice in range(0, time_array.size, 1):
+                    # print('\t\t\tslice:\t\t\t\t{}'.format(slice))
+                    random01 = np.random.randn(TWOD_ARRAY_SHAPE[0], TWOD_ARRAY_SHAPE[1])
+                    day = time_steps[slice]
+                    # print('\t\tday:\t\t{}'.format(day))
+                    day_of_year = int(day.strftime('%j'))
+                    # print('\t\tday of year:\t\t{}'.format(day_of_year))
+                    annual_cycle = 10 + 15 * np.sin(2 * np.pi * (int(day.strftime('%j')) / 365.25 - 0.28))
+                    # print('\t\tannual_cycle:\t\t{}'.format(annual_cycle))
+                    if rcp == 'RCP2_6':
+                        base = 40 + 15 * annual_cycle
+                    elif rcp == 'RCP4_5':
+                        base = 30 + 15 * annual_cycle
+                    elif rcp == 'RCP6_0':
+                        base = 20 + 15 * annual_cycle
+                    elif rcp == 'RCP8_5':
+                        base = 10 + 15 * annual_cycle
+                    else:
+                        sys.exit('\n\nVariable {} not coded for!!!\n\n'.format(variable))
+                    mask = base + 3 * random01
+                    mask = mask * rows05 * cols04
+                    mask = np.ma.array(mask, mask=in_netcdf_file_mask.mask)
+                    # print('\t\t\t\tmask.shape:\t\t\t{}'.format(mask.shape))
+                    # print('\t\t\t\tmask.min():\t\t\t{}\n\t\t\t\tmask.max():\t\t\t{}'.format(round(float(mask.min()), 8), round(float(mask.max()), 8)))
+                    multiple_variable[slice] = mask
+                    single_variable[slice] = mask
+                    variable_min = min(variable_min, mask.min())
+                    variable_max = max(variable_max, mask.max())
+                    del mask
+                # print('\t\tvariable_min:\t\t\t{}\n\t\tvariable_max:\t\t\t{}'.format(variable_min, variable_max))
+                multiple_variable.standard_name = single_variable.standard_name = ''
+                multiple_variable.long_name = single_variable.long_name = '{}'.format(indicator)
+                multiple_variable.units = single_variable.units = '-'
+                multiple_variable.coordinates = single_variable.coordinates = 'y x'
+                multiple_variable.grid_mapping = single_variable.grid_mapping = 'lambert_azimuthal_equal_area'
+                multiple_variable.missing_value = single_variable.missing_value = NODATA
+                multiple_variable.valid_min = single_variable.valid_min = round(variable_min, 4)
+                multiple_variable.valid_max = single_variable.valid_max = round(variable_max, 4)
+                # ''
+                # 'variable {}'.format(str(variable).zfill(2))
+                # '-'
+                # 'y x'
+                # 'lambert_azimuthal_equal_area'
+                # NODATA
+                # round(variable_min, 4)
+                # round(variable_max, 4)
+                #
+                # Close the multiple netCDF file
+                multiple_netcdf_file.close()
+print('Looped for indicators, RCPs, GCMs and HydroModels.')
+
+
+# Report total number of indicator/netCDF files created
+print('indicator_count:\t\t{}'.format(indicator_count))
 
 
 #  Close the single netCDF file
@@ -519,23 +522,19 @@ single_netcdf_file.close()
 in_dataset.close()
 
 
+# Report file size of single output netCDF file
 filesize(single_netcdf_file_path)
 
 
-filesize(multiple_netcdf_file_path.replace('ensemble{}'.format(str(ensemble).zfill(2)), '*'))
-
-
-# file_list = glob.glob(r'E:\EDgE\Python\netcdf\edge-mockup-ensemble*-20160704.nc')
-# print('\n\n{}'.format(file_list))
-# total_file_size = 0
-# for file in file_list:
-#     total_file_size += os.stat(file).st_size
-# print('total_file_size:\t\t{} bytes'.format(total_file_size))
-# print('\t\t\t\t\t\t{}'.format(filesize_format(total_file_size)))
+# Report file size of multiple output netCDF files
+# filesize(multiple_netcdf_file_path('edge-mockup-{}_*'.format(datetime.datetime.now().strftime('%Y%m%d'))))
+filesize(r'E:\EDgE\EDgE-mocked-up-netCDF\netcdf\edge-mockup-20160708-*.nc')
 
 
 # Capture end_time
 end_time = time.time()
+
+
 # Report elapsed_time (= end_time - start_time)
 print('\n\nIt took {} to execute this.'.format(hms_string(end_time - start_time)))
 print('\n\nDone.\n')
