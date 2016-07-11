@@ -210,6 +210,7 @@ time_steps = []
 for thing in rng:
     # print(thing)
     time_steps.append(thing)
+del thing
 # time_steps =list(rng)
 # print(time_steps)
 
@@ -379,15 +380,16 @@ rows03 = rows02.reshape(TWOD_ARRAY_SHAPE)
 rows04 = np.flipud(rows03)
 rows05 = rows04 * 0.001
 # print(rows05)
-print(rows05.shape)
-
+# print(rows05.shape)
+del rows01, rows02, rows03, rows04
 
 cols01 = np.arange(1, TWOD_ARRAY_SHAPE[1] + 1)
 cols02 = np.tile(cols01, TWOD_ARRAY_SHAPE[0])
 cols03 = cols02.reshape(TWOD_ARRAY_SHAPE)
 cols04 = cols03 * 0.001
 # print(cols04)
-print(cols04.shape)
+# print(cols04.shape)
+del cols01, cols02, cols03
 
 
 # Define out netCDF file path
@@ -401,15 +403,24 @@ print('\n\nsingle_netcdf_file_path:\t{0}'.format(single_netcdf_file_path))
 single_netcdf_file = create_netcdf(single_netcdf_file_path)
 
 
-# INDICATORS = range(1, 21, 1)
+# Define Indicator, RCP, GCM and HydroModel lists for the creation of netCDF files
 INDICATORS = range(1, 2, 1)
 INDICATORS = ['indicator' + str(i).zfill(2) for i in INDICATORS]
-# RCP = ['RCP2_6', 'RCP4_5', 'RCP6_0', 'RCP8_5']
-RCP = ['RCP2_6']
-# GCM = ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']
-GCM = ['HadGEM']
-# HYDROMODEL = ['VIC', 'MHM', 'NOAA']
-HYDROMODEL = ['VIC']
+RCP = ['RCP2_6', 'RCP4_5', 'RCP6_0', 'RCP8_5']
+# RCP = ['RCP2_6']
+GCM = ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']
+# GCM = ['HadGEM']
+HYDROMODEL = ['VIC', 'MHM', 'NOAA']
+# HYDROMODEL = ['VIC']
+
+
+# Define sigma and mu for random01 2D array (to create random values with a mean of 1.0 and a standard deviation of 0.05)
+SIGMA = 0.05
+MU = 1.0
+
+
+# Define C parameter for curve
+C = 0.0
 
 
 # Nested loops to create single and multiple output netCDF files
@@ -423,6 +434,10 @@ for indicator in INDICATORS:
         print('{}RCP:\t{}'.format('\t' * 2,
                                   rcp))
         #
+        # Define M parameter for curve
+        M = float(rcp.replace('RCP', '').replace('_', '.'))
+        # print('M:\t\t{}'.format(M))
+        #
         for gcm in GCM:
             print('{}GCM:\t{}'.format('\t' * 3,
                                       gcm))
@@ -433,7 +448,7 @@ for indicator in INDICATORS:
                 #
                 indicator_count += 1
                 #
-                netcdf_variable = '{}_{}_{}_{}'.format(rcp,
+                netcdf_variable = '{}-{}-{}-{}'.format(rcp,
                                                        gcm,
                                                        hydromodel,
                                                        indicator)
@@ -465,35 +480,28 @@ for indicator in INDICATORS:
                 variable_min, variable_max = 9.99E10, -9.99E10
                 for slice in range(0, time_array.size, 1):
                     # print('\t\t\tslice:\t\t\t\t{}'.format(slice))
-                    random01 = np.random.randn(TWOD_ARRAY_SHAPE[0], TWOD_ARRAY_SHAPE[1])
-                    day = time_steps[slice]
-                    # print('\t\tday:\t\t{}'.format(day))
-                    day_of_year = int(day.strftime('%j'))
-                    # print('\t\tday of year:\t\t{}'.format(day_of_year))
-                    annual_cycle = 10 + 15 * np.sin(2 * np.pi * (int(day.strftime('%j')) / 365.25 - 0.28))
-                    # print('\t\tannual_cycle:\t\t{}'.format(annual_cycle))
-                    if rcp == 'RCP2_6':
-                        base = 40 + 15 * annual_cycle
-                    elif rcp == 'RCP4_5':
-                        base = 30 + 15 * annual_cycle
-                    elif rcp == 'RCP6_0':
-                        base = 20 + 15 * annual_cycle
-                    elif rcp == 'RCP8_5':
-                        base = 10 + 15 * annual_cycle
-                    else:
-                        sys.exit('\n\nVariable {} not coded for!!!\n\n'.format(variable))
-                    mask = base + 3 * random01
-                    mask = mask * rows05 * cols04
+                    # Create random number 2D array with normal distribution with mean and standard deviation
+                    random01 = SIGMA * np.random.randn(TWOD_ARRAY_SHAPE[0], TWOD_ARRAY_SHAPE[1]) + MU
+                    # print('\n\nrandom01.min():\t\t{}\nrandom01.max():\t\t{}'.format(random01.min(),
+                    #                                                                 random01.max()))
+                    # print('random01.mean():\t{}\nrandom01.std():\t\t{}'.format(random01.mean(),
+                    #                                                                  random01.std()))
+                    # Define curve using y = mx + c (m = RCP value, x = slice, and c = intercept (0.0))
+                    curve = ((M * (float(slice))) + C)
+                    # print('curve:\t\t{}'.format(curve))
+                    # Create mask using product of curve parameter and row, column, and random 2D arrays and mask using in netCDF file mask
+                    mask = curve * rows05 * cols04 * random01
                     mask = np.ma.array(mask, mask=in_netcdf_file_mask.mask)
                     # print('\t\t\t\tmask.shape:\t\t\t{}'.format(mask.shape))
-                    # print('\t\t\t\tmask.min():\t\t\t{}\n\t\t\t\tmask.max():\t\t\t{}'.format(round(float(mask.min()), 8), round(float(mask.max()), 8)))
+                    # print('\t\t\t\tmask.min():\t\t\t{}\n\t\t\t\tmask.max():\t\t\t{}'.format(round(float(mask.min()), 8),
+                    #                                                                         round(float(mask.max()), 8)))
                     multiple_variable[slice] = mask
                     single_variable[slice] = mask
                     variable_min = min(variable_min, mask.min())
                     variable_max = max(variable_max, mask.max())
                     del mask
                 # print('\t\tvariable_min:\t\t\t{}\n\t\tvariable_max:\t\t\t{}'.format(variable_min, variable_max))
-                multiple_variable.standard_name = single_variable.standard_name = ''
+                multiple_variable.standard_name = single_variable.standard_name = '{}'.format(indicator)
                 multiple_variable.long_name = single_variable.long_name = '{}'.format(indicator)
                 multiple_variable.units = single_variable.units = '-'
                 multiple_variable.RCP = single_variable.RCP = '{}'.format(rcp)
@@ -504,14 +512,6 @@ for indicator in INDICATORS:
                 multiple_variable.missing_value = single_variable.missing_value = NODATA
                 multiple_variable.valid_min = single_variable.valid_min = round(variable_min, 4)
                 multiple_variable.valid_max = single_variable.valid_max = round(variable_max, 4)
-                # ''
-                # 'variable {}'.format(str(variable).zfill(2))
-                # '-'
-                # 'y x'
-                # 'lambert_azimuthal_equal_area'
-                # NODATA
-                # round(variable_min, 4)
-                # round(variable_max, 4)
                 #
                 # Close the multiple netCDF file
                 multiple_netcdf_file.close()
