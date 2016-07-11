@@ -35,12 +35,16 @@ def filesize(path):
     path -- file path, which can include wildcards
     """
     file_list = glob.glob(path)
-    print('\n\n{}'.format(file_list))
+    if len(file_list) == 0:
+        print('\n\nSingle netCDF file:')
+    else:
+        print('\n\nMultiple netCDF files:')
+    print('{}'.format(file_list))
     total_file_size = 0
     for file in file_list:
         total_file_size += os.stat(file).st_size
-    print('total_file_size:\t\t{}'.format(total_file_size))
-    print('\t\t\t\t\t\t{}'.format(filesize_format(total_file_size)))
+    print('\ttotal_file_size:\t\t{} bytes'.format(total_file_size))
+    print('\t\t\t\t\t\t\t{}'.format(filesize_format(total_file_size)))
 
 
 def filesize_format(bytes, precision=2):
@@ -52,7 +56,7 @@ def filesize_format(bytes, precision=2):
     """
     bytes = int(bytes)
     if bytes is 0:
-        return '0bytes'
+        return '0 bytes'
     log = math.floor(math.log(bytes, 1024))
     return "%.*f%s" % (
         precision,
@@ -400,11 +404,12 @@ single_netcdf_file = create_netcdf(single_netcdf_file_path)
 # INDICATORS = range(1, 21, 1)
 INDICATORS = range(1, 2, 1)
 INDICATORS = ['indicator' + str(i).zfill(2) for i in INDICATORS]
-RCP = ['RCP2_6', 'RCP4_5', 'RCP6_0', 'RCP8_5']
-# RCP = ['RCP2_6']
-GCM = ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']
-# GCM = ['HadGEM']
-HYDROMODEL = ['VIC', 'MHM', 'NOAA']
+# RCP = ['RCP2_6', 'RCP4_5', 'RCP6_0', 'RCP8_5']
+RCP = ['RCP2_6']
+# GCM = ['HadGEM', 'ECMWF', 'CSIRO', 'ECHAMS']
+GCM = ['HadGEM']
+# HYDROMODEL = ['VIC', 'MHM', 'NOAA']
+HYDROMODEL = ['VIC']
 
 
 # Nested loops to create single and multiple output netCDF files
@@ -491,7 +496,10 @@ for indicator in INDICATORS:
                 multiple_variable.standard_name = single_variable.standard_name = ''
                 multiple_variable.long_name = single_variable.long_name = '{}'.format(indicator)
                 multiple_variable.units = single_variable.units = '-'
-                multiple_variable.coordinates = single_variable.coordinates = 'y x'
+                multiple_variable.RCP = single_variable.RCP = '{}'.format(rcp)
+                multiple_variable.GCM = single_variable.GCM = '{}'.format(gcm)
+                multiple_variable.HYDROMODEL = single_variable.HYDROMODEL = '{}'.format(hydromodel)
+                multiple_variable.coordinates = single_variable.coordinates = 'time y x'
                 multiple_variable.grid_mapping = single_variable.grid_mapping = 'lambert_azimuthal_equal_area'
                 multiple_variable.missing_value = single_variable.missing_value = NODATA
                 multiple_variable.valid_min = single_variable.valid_min = round(variable_min, 4)
@@ -527,8 +535,8 @@ filesize(single_netcdf_file_path)
 
 
 # Report file size of multiple output netCDF files
-# filesize(multiple_netcdf_file_path('edge-mockup-{}_*'.format(datetime.datetime.now().strftime('%Y%m%d'))))
-filesize(r'E:\EDgE\EDgE-mocked-up-netCDF\netcdf\edge-mockup-20160708-*.nc')
+multiple_netcdf_files_path = multiple_netcdf_file_path.replace(netcdf_variable, '*')
+filesize(multiple_netcdf_files_path)
 
 
 # Capture end_time
