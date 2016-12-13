@@ -14,9 +14,6 @@ Author: Simon Wright
 '''
 
 
-
-
-
 import os
 import sys
 
