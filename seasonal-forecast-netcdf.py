@@ -16,38 +16,22 @@ Author: Simon Wright
 
 import os
 import sys
-
-
-from mpl_toolkits.basemap import Basemap, cm
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import mpl_toolkits.basemap.pyproj as pyproj
+import numpy.ma as ma
 import datetime
 import netCDF4
+from scipy.misc import imsave
 
 
 def main():
     #
-    #  Define Lambert Azimutahl Equal Area projection (EPSG:3035)
-    laeaproj = pyproj.Proj('+init=EPSG:3035')
-    #
-    #  Define WGS84proj
-    wgs84proj = pyproj.Proj('+init=EPSG:4326')
-    #
-    #  Convert bottom left corner and upper right corner to lat lon
-    origin = pyproj.transform(laeaproj, wgs84proj, 2500000., 750000.)
-    ##print 'bottom left corner = ' + str(origin)
-    upper = pyproj.transform(laeaproj, wgs84proj, 7500000., 5500000.)
-    ##print 'upper right corner = ' +str(upper)
-    #
     #  Define netcdf files
     netcdf_folder = r'Z:\upload\edgedata\15_09_2016'
-    netcdf_files = {r'ECMF_mHM_groundwater-recharge-probabilistic-quintile-distribution_monthly_1993_01_2012_05.nc': 'prob_quintile_dist'}
+    netcdf_file = r'ECMF_mHM_groundwater-recharge-probabilistic-quintile-distribution_monthly_1993_01_2012_05.nc'
+    netcdf_variable = 'prob_quintile_dist'
     #
     #  Define netcdf file path
-    netcdf_path = os.path.join(netcdf_folder, netcdf_files.keys()[0])
+    netcdf_path = os.path.join(netcdf_folder, netcdf_file)
     nc = netCDF4.Dataset(netcdf_path,'r')
     #
     # Summarise netcdf file
@@ -61,84 +45,91 @@ def main():
         print nc.variables[variable]
     #
     # Define netcdf variable and get array of data
-    variable = nc.variables[netcdf_files[os.path.basename(netcdf_path)]]
-    data = variable[0][0][0:6][0:950][0:1000]
+    variable = nc.variables[netcdf_variable]
+
+    # time_slice_start, time_slice_end = 0, 228
+    # quintile_slice_start, quintile_slice_end = 0, 5
+    # lead_time_slice_start, lead_time_slice_end = 0, 6
+    # y_slice_start, y_slice_end = 0, 950
+    # x_slice_start, x_slice_end = 0, 1000
+    time_slice_start, time_slice_end = 0, 1
+    quintile_slice_start, quintile_slice_end = 0, 5
+    lead_time_slice_start, lead_time_slice_end = 0, 1
+
+    y_slice_start, y_slice_end = 0, 950
+    x_slice_start, x_slice_end = 0, 1000
+
+    resolution = 5000.
+
+    # y_box_max, y_box_min = 5127500., 5077500.
+    y_box_max = 5167500.
+    y_size = 100
+    y_box_min = y_box_max - (y_size * resolution)
+    # x_box_min, x_box_max = 2782500., 2832500.
+    x_box_min = 2762500.
+    x_size = 100
+    x_box_max = x_box_min + (x_size * resolution)
+
+    y_variable = np.array(nc.variables['y'])
+    print(y_variable.min(), y_variable.max())
+    x_variable = np.array(nc.variables['x'])
+    print(x_variable.min(), x_variable.max())
+
+    y_slice_start = int((y_variable.max() - y_box_max) / resolution)
+    y_slice_end   = int((y_variable.max() - y_box_min) / resolution)
+    print(y_slice_start, y_slice_end)
+    x_slice_start = int((x_box_min - x_variable.min()) / resolution)
+    x_slice_end   = int((x_box_max - x_variable.min()) / resolution)
+    print(x_slice_start, x_slice_end)
+
+    # data = variable[time_slice_start:time_slice_end][quintile_slice_start:quintile_slice_end][lead_time_slice_start:lead_time_slice_end][y_slice_start:y_slice_end][x_slice_start:x_slice_end]
+    data = ma.array(variable[time_slice_start:time_slice_end,
+                            quintile_slice_start:quintile_slice_end,
+                            lead_time_slice_start:lead_time_slice_end,
+                            y_slice_start:y_slice_end,
+                            x_slice_start:x_slice_end])
+    print(type(data))
     print(data.shape)
-    #
-    # Close netcdf file
+    print(data.dtype)
+    print(data.fill_value)
+    # print(data)
+
     nc.close()
-    #
-    # Define array and create RGB colormap
-    my_rgb = np.array([[192,   0,   0],
-                       [237, 125,  49],
-                       [255, 192,   0],
-                       [ 90, 154, 213],
-                       [ 68, 114, 196]])
-    # print(my_rgb)
-    my_rgb = my_rgb / 255.
-    # print(my_rgb)
-    my_cmap = matplotlib.colors.ListedColormap(my_rgb, name='my_name')
-    #
-    # Define matplotlib graticule
-    parallels = np.arange(-50., 81., 10.)
-    meridians = np.arange(-20., 81., 10.)
-    #
-    # Define matplotlib figure
-    fig = plt.figure(figsize=(12, 8))
-    #
-    # Define matplotlib basemap
-    m = Basemap(llcrnrlon=origin[0],
-                llcrnrlat=origin[1],
-                urcrnrlon=upper[0],
-                urcrnrlat=upper[1],
-                resolution='i',
-                projection='laea',
-                lon_0=10., lat_0=52.)
-    #
-    # Loop through rows and columns to show monthly (lead time) data as matplotlib maps
-    count = 0
-    rows, cols = 2, 3
-    for row in range(1, rows + 1):
-        for col in range(1, cols + 1):
-            count += 1
-            subplot = int('{0}{1}{2}'.format(rows, cols, count))
-            print(subplot)
-            #
-            print(rows, cols, count)
-            ax = fig.add_subplot(rows, cols, count)
-            if count == 1:
-                ny, nx = data.shape[1], data.shape[2]
-                lons, lats = m.makegrid(nx, ny)  # get lat/lons of ny by nx evenly space grid.
-                x, y = m(lons, lats)  # compute map proj coordinates.
-            m.drawcoastlines()
-            m.drawcountries()
-            # m.drawparallels(parallels, labels=[1,0,0,0], fontsize=10)
-            # m.drawmeridians(meridians, labels=[0,0,0,1], fontsize=10)
-            m.drawparallels(parallels, labels=[0,0,0,0], fontsize=10)
-            m.drawmeridians(meridians, labels=[0,0,0,0], fontsize=10)
-            #
-            slice = data[count-1][:][:]
-            flipped = np.flipud(slice)
-            #
-            clevs = np.arange(flipped.min(), flipped.max(), (flipped.max() - flipped.min()) / 5.)
-            print clevs.shape
-            clevs = np.append(clevs, flipped.max())
-            print clevs.shape
-            print clevs
-            #
-            cs = m.contourf(x, y, flipped, clevs, cmap=my_cmap)
-            #
-            plt.title('lead time = {0}'.format(count - 1), fontsize=12)
-    #
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(cs, cax=cbar_ax)
-    fig.set_label('quintile')
-    #
-    plt.suptitle(netcdf_files[os.path.basename(netcdf_path)], fontsize=18)
-    #
-    plt.show()
+
+    scaled_data = np.rint(data).astype(int)
+    print(scaled_data.fill_value)
+    ma.set_fill_value(scaled_data, 255)
+    print(scaled_data.fill_value)
+    print(scaled_data)
+    print(scaled_data.dtype)
+
+    summed_data = np.sum(scaled_data, axis=1)
+    print(summed_data.fill_value)
+    ma.set_fill_value(summed_data, 255)
+    print(summed_data.fill_value)
+    print(summed_data)
+    print(summed_data.mask)
+
+    rgb = np.zeros((4, y_size, x_size), dtype=np.uint8)
+    # print(rgb)
+    print(rgb.shape)
+    print(rgb.dtype)
+    rgb[0, 0:y_size, 0:x_size] = scaled_data[0, 0, 0, 0:y_size, 0:x_size]
+    rgb[1, 0:y_size, 0:x_size] = scaled_data[0, 1, 0, 0:y_size, 0:x_size]
+    rgb[2, 0:y_size, 0:x_size] = scaled_data[0, 2, 0, 0:y_size, 0:x_size]
+    rgb[3, 0:y_size, 0:x_size] = scaled_data[0, 3, 0, 0:y_size, 0:x_size]
+    print(rgb)
+
+    image_folder = r'E:\EDgE\seasonal-forecast\images'
+    image_file = 'junk01.png'
+    image_path = os.path.join(image_folder, image_file)
+
+    imsave(image_path, rgb)
+
 
 
 if __name__ == '__main__':
+
+    np.set_printoptions(precision=4, threshold=501, suppress=True)
+
     main()
