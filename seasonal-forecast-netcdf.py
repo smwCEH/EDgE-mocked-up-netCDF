@@ -20,11 +20,14 @@ import numpy as np
 import numpy.ma as ma
 import datetime
 import netCDF4
-from scipy.misc import imsave
+
+
+# import scipy
+# from scipy.misc import imsave
+from scipy.misc import toimage
 
 
 from osgeo import gdal
-import sys
 
 
 def describe_image(image):
@@ -71,7 +74,7 @@ def main():
     # Define netcdf variable and get array of data
     variable = nc.variables[netcdf_variable]
 
-    time_min, time_max = 1, 2
+    time_min, time_max = 1, 1
     quintile_min, quintile_max = 1, 5
     leadtime_min, leadtime_max = 1, 6
 
@@ -157,14 +160,30 @@ def main():
 
                 del data, scaled_data
 
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'type(rgb)', type(rgb)))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.dtype', rgb.dtype))
         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.fill_value', rgb.fill_value))
         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.min()', rgb.min()))
         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.max()', rgb.max()))
 
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[0].min()', rgb[0].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[0].max()', rgb[0].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[1].min()', rgb[1].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[1].max()', rgb[1].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[2].min()', rgb[2].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[2].max()', rgb[2].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[3].min()', rgb[3].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[3].max()', rgb[3].max()))
+
+
+
         image_folder = r'E:\EDgE\seasonal-forecast\images'
         image_file = 'junk{0}.png'.format(str(time).zfill(3))
         image_path = os.path.join(image_folder, image_file)
-        imsave(image_path, rgb)
+        # imsave(image_path, rgb)
+        # im = scipy.misc.toimage(rgb, cmin=0, cmax=100)
+        im = toimage(rgb, low=ma.min(rgb), high=ma.max(rgb))
+        im.save(image_path)
 
         describe_image(image_path)
 
