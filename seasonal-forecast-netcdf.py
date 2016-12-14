@@ -175,8 +175,6 @@ def main():
         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[3].min()', rgb[3].min()))
         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[3].max()', rgb[3].max()))
 
-
-
         image_folder = r'E:\EDgE\seasonal-forecast\images'
         image_file = 'junk{0}.png'.format(str(time).zfill(3))
         image_path = os.path.join(image_folder, image_file)
