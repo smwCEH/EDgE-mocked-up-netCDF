@@ -24,7 +24,7 @@ import netCDF4
 
 # import scipy
 # from scipy.misc import imsave
-from scipy.misc import toimage
+import scipy.misc
 
 
 from osgeo import gdal
@@ -51,6 +51,20 @@ def describe_image(image):
 
 
 def main():
+
+    # import scipy.misc
+    # print sys.version
+    # print scipy.version.version
+    # # See:  http://stefaanlippens.net/scipy_unscaledimsave/
+    # a = 200 * scipy.ones((8,8))
+    # a[0:4, 0:4] = 80
+    # print a
+    # scipy.misc.imsave(r'E:\EDgE\seasonal-forecast\images\rescaled01.png', a)
+    # # Prevent rescaling of the dynamic range
+    # im = scipy.misc.toimage(a, cmin=0, cmax=255)
+    # im.save(r'E:\EDgE\seasonal-forecast\images\unscaled01.png')
+    # sys.exit()
+
     #
     #  Define netcdf files
     netcdf_folder = r'Z:\upload\edgedata\15_09_2016'
@@ -100,12 +114,12 @@ def main():
     x_max   = int((x_box_max - x_variable.min()) / resolution)
     print(x_min, x_max)
 
-    rgb = ma.empty((4, y_size, (x_size * leadtime_max)), dtype=np.uint8)
-    ma.set_fill_value(rgb, 255)
-    # print(rgb)
-    print('\n\n{0:<30}:\t{1}'.format('rgb.shape', rgb.shape))
-    print('{0:<30}:\t{1}'.format('rgb.dtype', rgb.dtype))
-    print('{0:<30}:\t{1}'.format('rgb.fill_value', rgb.fill_value))
+    rgba = ma.empty((4, y_size, (x_size * leadtime_max)), dtype=np.uint8)
+    ma.set_fill_value(rgba, 255)
+    # print(rgba)
+    print('\n\n{0:<30}:\t{1}'.format('rgba.shape', rgba.shape))
+    print('{0:<30}:\t{1}'.format('rgba.dtype', rgba.dtype))
+    print('{0:<30}:\t{1}'.format('rgba.fill_value', rgba.fill_value))
 
     print('\n\n')
     for time in range(time_min, time_max + 1):
@@ -150,37 +164,37 @@ def main():
                 rgb_x_max = (leadtime * x_size) - 1
                 # print(rgb_x_min, rgb_x_max)
 
-                # rgb[0, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
-                # rgb[1, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
-                # rgb[2, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
-                # rgb[3, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
+                # rgba[0, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
+                # rgba[1, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
+                # rgba[2, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
+                # rgba[3, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
                 if quintile < 5:
-                    rgb[quintile - 1, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
-                # print(rgb)
+                    rgba[quintile - 1, 0:y_size, rgb_x_min:rgb_x_max + 1] = scaled_data[0:y_size, 0:x_size]
+                # print(rgba)
 
                 del data, scaled_data
 
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'type(rgb)', type(rgb)))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.dtype', rgb.dtype))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.fill_value', rgb.fill_value))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.min()', rgb.min()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb.max()', rgb.max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'type(rgba)', type(rgba)))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.dtype', rgba.dtype))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.fill_value', rgba.fill_value))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.min()', rgba.min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.max()', rgba.max()))
 
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[0].min()', rgb[0].min()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[0].max()', rgb[0].max()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[1].min()', rgb[1].min()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[1].max()', rgb[1].max()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[2].min()', rgb[2].min()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[2].max()', rgb[2].max()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[3].min()', rgb[3].min()))
-        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgb[3].max()', rgb[3].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[0].min()', rgba[0].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[0].max()', rgba[0].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[1].min()', rgba[1].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[1].max()', rgba[1].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[2].min()', rgba[2].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[2].max()', rgba[2].max()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[3].min()', rgba[3].min()))
+        print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[3].max()', rgba[3].max()))
 
         image_folder = r'E:\EDgE\seasonal-forecast\images'
         image_file = 'junk{0}.png'.format(str(time).zfill(3))
         image_path = os.path.join(image_folder, image_file)
-        # imsave(image_path, rgb)
-        # im = scipy.misc.toimage(rgb, cmin=0, cmax=100)
-        im = toimage(rgb, low=ma.min(rgb), high=ma.max(rgb))
+        # imsave(image_path, rgba)
+        im = scipy.misc.toimage(rgba, cmin=0, cmax=255)
+        # im = toimage(rgba, low=ma.min(rgba), high=ma.max(rgba))
         im.save(image_path)
 
         describe_image(image_path)
