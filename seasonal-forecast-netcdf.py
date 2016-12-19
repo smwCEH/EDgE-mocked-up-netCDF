@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 
 __author__     =     'smw'
@@ -150,6 +150,12 @@ def main():
                     for file in glob.glob(os.path.splitext(image_path)[0] + '.*'):
                         # print('{0}{1:<12}:\t{2}'.format('\t' * tabs, 'file', file))
                         os.remove(file)
+
+
+
+
+
+
                     tabs -= 1
 
                     tabs -= 1
