@@ -63,6 +63,26 @@ def get_combinations(array):
     return combinations
 
 
+def summarise_array(array, array_name, tabs=0):
+    print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_name+'.dtype',  array.dtype))
+    print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_name+'.shape',  array.shape))
+    print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_name+'.min()',  array.min()))
+    print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_name+'.max()',  array.max()))
+    print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_name+'.mean()', array.mean()))
+    print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_name+'.std()',  array.std()))
+
+
+def array_histogram(array, bins_array, tabs=0):
+    histogram = np.histogram(array, bins_array)
+    print '\t' * tabs, histogram
+    print '\t' * tabs, histogram[0]
+    print '\t' * tabs, histogram[0].sum()
+    unique, counts = np.unique(array, return_counts=True)
+    dictionary = dict(zip(unique, counts))
+    for key in sorted(dictionary):
+        print '{0}{1}:\t{2}'.format('\t' * tabs, key, dictionary[key])
+
+
 def main():
 
     NODATA = 255
@@ -120,22 +140,26 @@ def main():
     # Define image folder
     image_folder = r'E:\EDgE\seasonal-forecast\images-20161219'
 
-    y_test, x_test = 85, 445
-
+    # Define tabs for output to console
+    tabs = 0
 
     # Loop through dimensions to create images
     print('\n\n')
     for time in range(time_min, time_max + 1):
-        print('{0}{1}:\t{2}'.format('\t' * 1, 'time', time))
+        tabs = 1
+        print('{0}{1}:\t{2}'.format('\t' * tabs, 'time', time))
         if output:
-            print('{0}{1}:\t{2}'.format('\t' * 1, 'days', days))
+            print('{0}{1}:\t{2}'.format('\t' * tabs, 'days', days))
         date = STARTDATE + datetime.timedelta(days=days)
-        print('{0}{1}:\t{2}'.format('\t' * 1, 'date', date.date().strftime('%Y%m%d')))
+        print('{0}{1}:\t{2}'.format('\t' * tabs, 'date', date.date().strftime('%Y%m%d')))
 
         for quintile in range(quintile_min, quintile_max + 1):
-            print('{0}{1:<12}:\t{2}'.format('\t' * 2, 'quintile', quintile))
+            tabs = 2
+            print('{0}{1:<12}:\t{2}'.format('\t' * tabs, 'quintile', quintile))
+
             for leadtime in range(leadtime_min, leadtime_max + 1):
-                print('{0}{1:<12}:\t{2}'.format('\t' * 3, 'leadtime', leadtime))
+                tabs = 3
+                print('{0}{1:<12}:\t{2}'.format('\t' * tabs, 'leadtime', leadtime))
 
                 # Read data slice from netcdf variable for time, quintile and leadtime into a floating point numpy masked array
                 float_data = ma.array(variable[time - 1,
@@ -143,131 +167,80 @@ def main():
                                                leadtime - 1,
                                                y_min:y_max,
                                                x_min:x_max])
+                tabs = 4
                 if output:
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.dtype',  float_data.dtype))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.min()',  float_data.min()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.max()',  float_data.max()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.mean()', float_data.mean()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.std()',  float_data.std()))
-
-                    if leadtime == 1:
-                        print '\n', float_data[y_test, x_test], '\n'
+                    summarise_array(float_data, 'float_data', tabs=tabs)
 
                 # Convert floating point numpy masked array to an integer (np.uint8) numpy masked array
                 integer_data = np.rint(float_data).astype(np.uint8)
                 if output:
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.dtype',  integer_data.dtype))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.min()',  integer_data.min()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.max()',  integer_data.max()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.mean()', integer_data.mean()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.std()',  integer_data.std()))
-
-                    if leadtime == 1:
-                        print '\n', integer_data[y_test, x_test]
+                    summarise_array(integer_data, 'integer_data', tabs=tabs)
 
                 # Convert integer numpy masked array to numpy array with masked values set to NODATA value
                 filled_data = integer_data.filled(fill_value=NODATA)
                 if output:
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.dtype',  filled_data.dtype))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.min()',  filled_data.min()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.max()',  filled_data.max()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.mean()', filled_data.mean()))
-                    print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.std()',  filled_data.std()))
+                    summarise_array(filled_data, 'filled_data', tabs=tabs)
 
-                    if leadtime == 1:
-                        print '\n', filled_data[y_test, x_test]
-
+                # Calculate frame in the image by offsetting x array bounds
                 rgba_x_min = (leadtime - 1) * x_size
                 rgba_x_max = (leadtime * x_size)
-                # print(rgba_x_min, rgba_x_max)
 
-                # Copy
+                # For quintiles 1-4 summarise array and write to rgba 4 band array
                 if quintile < 5:
                     if output:
-                        print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'quintile', quintile - 1))
-                        print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'rgba_x_min', rgba_x_min))
-                        print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'rgba_x_max', rgba_x_max))
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, 'quintile', quintile - 1))
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, 'rgba_x_min', rgba_x_min))
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, 'rgba_x_max', rgba_x_max))
 
                     np.copyto(rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max], filled_data[0:y_size, 0:x_size], casting='same_kind')
 
                     if output:
-                        print rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].min(),\
-                              rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].max(),\
-                              rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].mean(),\
-                              rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].std()
+                        array_index = 'rgba[{0},0:{1},{2}:{3}]'.format(quintile-1, y_size, rgba_x_min, rgba_x_max)
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_index + '.min()', rgba[quintile - 1,0:y_size,rgba_x_min:rgba_x_max].min()))
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_index + '.max()', rgba[quintile - 1,0:y_size,rgba_x_min:rgba_x_max].max()))
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_index + '.mean()', rgba[quintile - 1,0:y_size,rgba_x_min:rgba_x_max].mean()))
+                        print('{0}{1:<30}:\t{2}'.format('\t' * tabs, array_index + '.std()', rgba[quintile - 1,0:y_size,rgba_x_min:rgba_x_max].std()))
 
-                        if leadtime == 1:
-                            print '\n', rgba[0, y_test, x_test], rgba[1, y_test, x_test], rgba[2, y_test, x_test], rgba[3, y_test, x_test], '\n'
-
-                            # del float_data, integer_data, filled_data
+                # Deleet intermediate array slices
+                del float_data, integer_data, filled_data
 
         if output:
-            print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'type(rgba)', type(rgba)))
-            print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.dtype', rgba.dtype))
-            print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.min()', rgba.min()))
-            print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.max()', rgba.max()))
+            summarise_array(rgba, 'rgba', tabs=2)
 
+        tabs = 2
         for band in range(rgba.shape[0]):
             if output:
-                print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].min()'.format(band),  rgba[band].min()))
-                print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].max()'.format(band),  rgba[band].max()))
-                print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].mean()'.format(band), rgba[band].mean()))
-                print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].std()'.format(band),  rgba[band].std()))
+                summarise_array(rgba[band], 'rgba[{0}]'.format(band), tabs=tabs)
             if output:
-                histogram = np.histogram(rgba[band], bins=[-1,0,100,254,255])
-                print histogram
-                print histogram[0]
-                print histogram[0].sum()
-                unique, counts = np.unique(rgba[band], return_counts=True)
-                dictionary = dict(zip(unique, counts))
-                for key in sorted(dictionary):
-                    print '{0}:\t{1}'.format(key, dictionary[key])
-            if output:
-                print '\n', rgba[band, y_test, x_test], '\n'
+                array_histogram(rgba[band], [-1,0,100,254,255], tabs=tabs)
 
-        print '\n', rgba[0:4, y_test, x_test]
-        print rgba[0:4, y_test, x_test].sum()
-        print 100 - rgba[0:4, y_test, x_test].sum(), '\n'
-
-        print np.where(rgba[0,0:950,0:1000]==73)
-        print rgba[0,85,445]
-        print rgba[1,85,445]
-        print rgba[2,85,445]
-        print rgba[3,85,445]
-        print np.where(rgba[1,0:950,0:1000]==36)
-        print np.where(rgba[2,0:950,0:1000]==36)
-        print np.where(rgba[3,0:950,0:1000]==36)
-        # print np.where(rgba[0,0:950,0:1000]==73) and np.where(rgba[1,0:950,0:1000]==27)
-
-        junk = ma.masked_where(rgba == 255, rgba)
-        print(type(junk))
-        print('{0:<30}:\t{1}'.format('junk.shape', junk.shape))
-        print('{0:<30}:\t{1}'.format('junk.min()', junk.min()))
-        print('{0:<30}:\t{1}'.format('junk.max()', junk.max()))
-        # junk[junk == 255] = 0
+        # junk = ma.masked_where(rgba == 255, rgba)
+        # print(type(junk))
         # print('{0:<30}:\t{1}'.format('junk.shape', junk.shape))
         # print('{0:<30}:\t{1}'.format('junk.min()', junk.min()))
         # print('{0:<30}:\t{1}'.format('junk.max()', junk.max()))
-        summed_data = ma.sum(junk, axis=0)
-        # summed_data = np.sum(np.where(rgba <= 100), axis=0)
-        print('{0:<30}:\t{1}'.format('summed_data.shape', summed_data.shape))
-        print('{0:<30}:\t{1}'.format('summed_data.min()', summed_data.min()))
-        print('{0:<30}:\t{1}'.format('summed_data.max()', summed_data.max()))
-        # print(summed_data)
-        # print summed_data[summed_data > 100]
+        # # junk[junk == 255] = 0
+        # # print('{0:<30}:\t{1}'.format('junk.shape', junk.shape))
+        # # print('{0:<30}:\t{1}'.format('junk.min()', junk.min()))
+        # # print('{0:<30}:\t{1}'.format('junk.max()', junk.max()))
+        # summed_data = ma.sum(junk, axis=0)
+        # # summed_data = np.sum(np.where(rgba <= 100), axis=0)
+        # print('{0:<30}:\t{1}'.format('summed_data.shape', summed_data.shape))
+        # print('{0:<30}:\t{1}'.format('summed_data.min()', summed_data.min()))
+        # print('{0:<30}:\t{1}'.format('summed_data.max()', summed_data.max()))
+        # # print(summed_data)
+        # # print summed_data[summed_data > 100]
 
-
+        tabs = 1
         im = scipy.misc.toimage(rgba)
         # im = scipy.misc.toimage(rgba, cmin=0, cmax=255)
         # im = toimage(rgba, low=ma.min(rgba), high=ma.max(rgba))
         image_file = 'cc-hm-ind-{0}.png'.format(date.date().strftime('%Y%m%d'))
         image_path = os.path.join(image_folder, image_file)
-        print(image_path)
+        print('{0}{1}:\t{2}'.format('\t' * tabs, 'image_path', image_path))
         im.save(image_path)
 
-
-        describe_image(image_path)
-
+        # describe_image(image_path)
 
 
     sys.exit()
@@ -347,142 +320,8 @@ def main():
 
 
 
-                # #  Define netcdf file
-                # netcdf_file = r'ECMF_mHM_groundwater-recharge-probabilistic-quintile-distribution_monthly_1993_01_2012_05.nc'
-                # netcdf_variable = 'prob_quintile_dist'
-                #
-                # #  Define netcdf file path
-                # netcdf_path = os.path.join(netcdf_folder, netcdf_file)
-                # # OPen netcdf file as netCDF Dataset object
-                # nc = netCDF4.Dataset(netcdf_path,'r')
-
-                # days = nc.variables['time'][time - 1]
-
-
-
-
-
     sys.exit()
 
-    # # Summarise netcdf file
-    # for attribute in nc.ncattrs():
-    #     print attribute, '\t', nc.getncattr(attribute)
-    # for dimension in nc.dimensions:
-    #     print dimension
-    #     print nc.dimensions[dimension]
-    # for variable in nc.variables:
-    #     print variable
-    #     print nc.variables[variable]
-
-    # Define netcdf variable and get array of data
-    variable = nc.variables[netcdf_variable]
-
-    # Define rgba array
-    rgba_bands = 4
-    rgba = np.zeros((rgba_bands, y_size, (x_size * leadtime_max)), dtype=np.uint8)
-    if output:
-        print('\n\n{0:<30}:\t{1}'.format('rgba.shape', rgba.shape))
-        print('{0:<30}:\t{1}'.format('rgba.dtype', rgba.dtype))
-
-    # Loop through dimensions to create images
-    print('\n\n')
-    #     for quintile in range(quintile_min, quintile_max + 1):
-    #         print('{0}{1:<12}:\t{2}'.format('\t' * 2, 'quintile', quintile))
-    #         for leadtime in range(leadtime_min, leadtime_max + 1):
-    #             print('{0}{1:<12}:\t{2}'.format('\t' * 3, 'leadtime', leadtime))
-    #
-    #             # Read data slice from netcdf variable for time, quintile and leadtime into a floating point numpy masked array
-    #             float_data = ma.array(variable[time - 1,
-    #                                            quintile - 1,
-    #                                            leadtime - 1,
-    #                                            y_min:y_max,
-    #                                            x_min:x_max])
-    #             if output:
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.dtype',  float_data.dtype))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.min()',  float_data.min()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.max()',  float_data.max()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.mean()', float_data.mean()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'float_data.std()',  float_data.std()))
-    #
-    #             # Convert floating point numpy masked array to an integer (np.uint8) numpy masked array
-    #             integer_data = np.rint(float_data).astype(np.uint8)
-    #             if output:
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.dtype',  integer_data.dtype))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.min()',  integer_data.min()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.max()',  integer_data.max()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.mean()', integer_data.mean()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'integer_data.std()',  integer_data.std()))
-    #
-    #             # Convert integer numpy masked array to numpy array with masked values set to NODATA value
-    #             filled_data = integer_data.filled(fill_value=NODATA)
-    #             if output:
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.dtype',  filled_data.dtype))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.min()',  filled_data.min()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.max()',  filled_data.max()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.mean()', filled_data.mean()))
-    #                 print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'filled_data.std()',  filled_data.std()))
-    #
-    #             # summed_data = ma.sum(scaled_data, axis=1)
-    #             # print('\n\n{0:<30}:\t{1}'.format('summed_data.fill_value', summed_data.fill_value))
-    #             # ma.set_fill_value(summed_data, 255)
-    #             # print('{0:<30}:\t{1}'.format('summed_data.fill_value', summed_data.fill_value))
-    #             # print('{0:<30}:\t{1}'.format('summed_data.min()', summed_data.min()))
-    #             # print('{0:<30}:\t{1}'.format('summed_data.max()', summed_data.max()))
-    #             # print(summed_data)
-    #             # print(summed_data.mask)
-    #
-    #             rgba_x_min = (leadtime - 1) * x_size
-    #             rgba_x_max = (leadtime * x_size)
-    #             # print(rgba_x_min, rgba_x_max)
-    #
-    #             # Copy
-    #             if quintile < 5:
-    #                 if output:
-    #                     print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'quintile', quintile - 1))
-    #                     print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'rgba_x_min', rgba_x_min))
-    #                     print('{0}{1:<30}:\t{2}'.format('\t' * 4, 'rgba_x_max', rgba_x_max))
-    #
-    #                 np.copyto(rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max], filled_data[0:y_size, 0:x_size], casting='same_kind')
-    #
-    #                 if output:
-    #                     print rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].min(),\
-    #                           rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].max(),\
-    #                           rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].mean(),\
-    #                           rgba[quintile - 1, 0:y_size, rgba_x_min:rgba_x_max].std()
-    #
-    #             del float_data, integer_data, filled_data
-    #
-    #     if output:
-    #         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'type(rgba)', type(rgba)))
-    #         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.dtype', rgba.dtype))
-    #         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.min()', rgba.min()))
-    #         print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba.max()', rgba.max()))
-    #
-    #     for band in range(rgba.shape[0]):
-    #         if output:
-    #             print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].min()'.format(band), rgba[band].min()))
-    #             print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].max()'.format(band), rgba[band].max()))
-    #             print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].mean()'.format(band), rgba[band].mean()))
-    #             print('{0}{1:<30}:\t{2}'.format('\t' * 2, 'rgba[{0}].std()'.format(band), rgba[band].std()))
-    #
-    #         if output:
-    #             histogram = np.histogram(rgba[band], bins=[-1,0,100,254,255])
-    #             print histogram
-    #             print histogram[0]
-    #             print histogram[0].sum()
-    #             unique, counts = np.unique(rgba[band], return_counts=True)
-    #             dictionary = dict(zip(unique, counts))
-    #             for key in sorted(dictionary):
-    #                 print '{0}:\t{1}'.format(key, dictionary[key])
-    #
-    #     im = scipy.misc.toimage(rgba)
-    #     # im = scipy.misc.toimage(rgba, cmin=0, cmax=255)
-    #     # im = toimage(rgba, low=ma.min(rgba), high=ma.max(rgba))
-    #     im.save(image_path)
-    #
-    #     # describe_image(image_path)
-    #
-    # nc.close()
 
 
 if __name__ == '__main__':
