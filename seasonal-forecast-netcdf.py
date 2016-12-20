@@ -75,7 +75,7 @@ def summarise_array(array, array_name, tabs=0):
 def array_histogram(array, bins_array, tabs=0):
     histogram = np.histogram(array, bins_array)
     print '\t' * tabs, histogram
-    print '\t' * tabs, histogram[0]
+    # print '\t' * tabs, histogram[0]
     print '\t' * tabs, histogram[0].sum()
     unique, counts = np.unique(array, return_counts=True)
     dictionary = dict(zip(unique, counts))
@@ -91,6 +91,8 @@ def main():
 
     output = True
 
+    tabs = 0
+
     # Define netcdf dimensions bounds
     time_min, time_max = 1, 1
     quintile_min, quintile_max = 1, 5
@@ -99,23 +101,92 @@ def main():
     y_size = y_max - y_min
     x_min, x_max = 0, 1000
     x_size = x_max - x_min
-    # resolution = 5000.
-    # y_box_max = 5167500.
-    # y_size = 100
-    # y_box_min = y_box_max - (y_size * resolution)
-    # x_box_min = 2762500.
-    # x_size = 100
-    # x_box_max = x_box_min + (x_size * resolution)
-    # y_variable = np.array(nc.variables['y'])
-    # print(y_variable.min(), y_variable.max())
-    # x_variable = np.array(nc.variables['x'])
-    # print(x_variable.min(), x_variable.max())
-    # y_min = int((y_variable.max() - y_box_max) / resolution)
-    # y_max   = int((y_variable.max() - y_box_min) / resolution)
-    # print(y_min, y_max)
-    # x_min = int((x_box_min - x_variable.min()) / resolution)
-    # x_max   = int((x_box_max - x_variable.min()) / resolution)
-    # print(x_min, x_max)
+
+    # Define combinations of climate models
+    cms = ['cm1', 'cm2', 'cm3', 'cm4']
+    cm_combinations = get_combinations(cms)
+    print('\n')
+    print('{0}{1}:\t{2}'.format('\t' * tabs, 'cm_combinations', cm_combinations))
+    print('{0}{1}:\t{2}'.format('\t' * tabs, 'len(cm_combinations)', len(cm_combinations)))
+
+    # Define combination of hydrological models
+    hms = ['hm1', 'hm2', 'hm3', 'hm4']
+    hm_combinations = get_combinations(hms)
+    print('\n')
+    print('{0}{1}:\t{2}'.format('\t' * tabs, 'hm_combinations', hm_combinations))
+    print('{0}{1}:\t{2}'.format('\t' * tabs, 'len(hm_combinations)', len(hm_combinations)))
+
+    # Define folder for input netcdf files
+    netcdf_folder = r'Z:\upload\edgedata\15_09_2016'
+
+    # Define folder for output image files
+    image_folder = r'E:\EDgE\seasonal-forecast\images'
+
+    # Mock up time dimension as a list of floats
+    time_dim = [33968.0, 33999.0, 34027.0, 34058.0, 34088.0, 34119.0, 34149.0, 34180.0, 34211.0, 34241.0, 34272.0, 34302.0, 34333.0, 34364.0, 34392.0, 34423.0, 34453.0, 34484.0, 34514.0, 34545.0, 34576.0, 34606.0, 34637.0, 34667.0, 34698.0, 34729.0, 34757.0, 34788.0, 34818.0, 34849.0, 34879.0, 34910.0, 34941.0, 34971.0, 35002.0, 35032.0, 35063.0, 35094.0, 35123.0, 35154.0, 35184.0, 35215.0, 35245.0, 35276.0, 35307.0, 35337.0, 35368.0, 35398.0, 35429.0, 35460.0, 35488.0, 35519.0, 35549.0, 35580.0, 35610.0, 35641.0, 35672.0, 35702.0, 35733.0, 35763.0, 35794.0, 35825.0, 35853.0, 35884.0, 35914.0, 35945.0, 35975.0, 36006.0, 36037.0, 36067.0, 36098.0, 36128.0, 36159.0, 36190.0, 36218.0, 36249.0, 36279.0, 36310.0, 36340.0, 36371.0, 36402.0, 36432.0, 36463.0, 36493.0, 36524.0, 36555.0, 36584.0, 36615.0, 36645.0, 36676.0, 36706.0, 36737.0, 36768.0, 36798.0, 36829.0, 36859.0, 36890.0, 36921.0, 36949.0, 36980.0, 37010.0, 37041.0, 37071.0, 37102.0, 37133.0, 37163.0, 37194.0, 37224.0, 37255.0, 37286.0, 37314.0, 37345.0, 37375.0, 37406.0, 37436.0, 37467.0, 37498.0, 37528.0, 37559.0, 37589.0, 37620.0, 37651.0, 37679.0, 37710.0, 37740.0, 37771.0, 37801.0, 37832.0, 37863.0, 37893.0, 37924.0, 37954.0, 37985.0, 38016.0, 38045.0, 38076.0, 38106.0, 38137.0, 38167.0, 38198.0, 38229.0, 38259.0, 38290.0, 38320.0, 38351.0, 38382.0, 38410.0, 38441.0, 38471.0, 38502.0, 38532.0, 38563.0, 38594.0, 38624.0, 38655.0, 38685.0, 38716.0, 38747.0, 38775.0, 38806.0, 38836.0, 38867.0, 38897.0, 38928.0, 38959.0, 38989.0, 39020.0, 39050.0, 39081.0, 39112.0, 39140.0, 39171.0, 39201.0, 39232.0, 39262.0, 39293.0, 39324.0, 39354.0, 39385.0, 39415.0, 39446.0, 39477.0, 39506.0, 39537.0, 39567.0, 39598.0, 39628.0, 39659.0, 39690.0, 39720.0, 39751.0, 39781.0, 39812.0, 39843.0, 39871.0, 39902.0, 39932.0, 39963.0, 39993.0, 40024.0, 40055.0, 40085.0, 40116.0, 40146.0, 40177.0, 40208.0, 40236.0, 40267.0, 40297.0, 40328.0, 40358.0, 40389.0, 40420.0, 40450.0, 40481.0, 40511.0, 40542.0, 40573.0, 40601.0, 40632.0, 40662.0, 40693.0, 40723.0, 40754.0, 40785.0, 40815.0, 40846.0, 40876.0]
+    days = time_dim[0]
+
+    # Loop through variable, climate model and hydrological model combinations
+    print('\n')
+    image_count = 0
+    for var in ['var']:
+        tabs += 1
+        print('{0}{1}:\t{2}'.format('\t' * tabs, 'var', var))
+        for cm in cm_combinations:
+            tabs += 1
+            print('{0}{1}:\t{2}'.format('\t' * tabs, 'cm', cm))
+            for hm in hm_combinations:
+                tabs += 1
+                print('{0}{1}:\t{2}'.format('\t' * tabs, 'hm', hm))
+                for time in range(time_min, time_max + 1):
+                    tabs += 1
+                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'time', time))
+                    if output:
+                        print('{0}{1}:\t{2}'.format('\t' * tabs, 'days', days))
+                    date = STARTDATE + datetime.timedelta(days=days)
+                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'date', date.date().strftime('%Y%m%d')))
+                    tabs += 1
+                    image_count += 1
+                    image_file = '{0}_{1}_{2}_{3}.png'.format(var, cm, hm, date.date().strftime('%Y%m'))
+                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'image_file', image_file))
+                    image_path = os.path.join(image_folder, image_file)
+                    for file in glob.glob(os.path.splitext(image_path)[0] + '.*'):
+                        # print('{0}{1:<12}:\t{2}'.format('\t' * tabs, 'file', file))
+                        os.remove(file)
+
+                    cm_list = cm.split('_')
+                    # print cm_list
+                    hm_list = hm.split('_')
+                    # print hm_list
+                    data_file_list = []
+                    for cm_input in cm_list:
+                        for hm_input in hm_list:
+                            data_file = '{0}_{1}_{2}.nc'.format(cm_input, hm_input, var)
+                            data_file_list.append(data_file)
+                    tabs += 1
+                    for data_file in data_file_list:
+                        print('{0}{1}:\t{2}'.format('\t' * tabs, 'data_file', data_file))
+                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'len(data_file_list)', len(data_file_list)))
+                    tabs -= 1
+
+
+
+
+                    tabs -= 1
+
+                    tabs -= 1
+                tabs -= 1
+            tabs -= 1
+        tabs -= 1
+
+    print('{0}{1}:\t{2}'.format('\t' * tabs, 'image_count', image_count))
+
+
+
+
+
+
+    sys.exit()
 
     # Create netcdf4 dataset object
     netcdf_folder = r'E:\EDgE\seasonal-forecast\data'
@@ -245,74 +316,6 @@ def main():
 
     sys.exit()
 
-
-    tabs = 0
-
-    # Define combinations of climate models
-    cms = ['cm1', 'cm2', 'cm3', 'cm4']
-    cm_combinations = get_combinations(cms)
-    print('\n')
-    print('{0}{1}:\t{2}'.format('\t' * tabs, 'cm_combinations', cm_combinations))
-    print('{0}{1}:\t{2}'.format('\t' * tabs, 'len(cm_combinations)', len(cm_combinations)))
-
-    # Define combination of hydrological models
-    hms = ['hm1', 'hm2', 'hm3', 'hm4']
-    hm_combinations = get_combinations(hms)
-    print('\n')
-    print('{0}{1}:\t{2}'.format('\t' * tabs, 'hm_combinations', hm_combinations))
-    print('{0}{1}:\t{2}'.format('\t' * tabs, 'len(hm_combinations)', len(hm_combinations)))
-
-    # Define folder for input netcdf files
-    netcdf_folder = r'Z:\upload\edgedata\15_09_2016'
-
-    # Define folder for output image files
-    image_folder = r'E:\EDgE\seasonal-forecast\images'
-
-    # Mock up time dimension as a list of floats
-    time_dim = [33968.0, 33999.0, 34027.0, 34058.0, 34088.0, 34119.0, 34149.0, 34180.0, 34211.0, 34241.0, 34272.0, 34302.0, 34333.0, 34364.0, 34392.0, 34423.0, 34453.0, 34484.0, 34514.0, 34545.0, 34576.0, 34606.0, 34637.0, 34667.0, 34698.0, 34729.0, 34757.0, 34788.0, 34818.0, 34849.0, 34879.0, 34910.0, 34941.0, 34971.0, 35002.0, 35032.0, 35063.0, 35094.0, 35123.0, 35154.0, 35184.0, 35215.0, 35245.0, 35276.0, 35307.0, 35337.0, 35368.0, 35398.0, 35429.0, 35460.0, 35488.0, 35519.0, 35549.0, 35580.0, 35610.0, 35641.0, 35672.0, 35702.0, 35733.0, 35763.0, 35794.0, 35825.0, 35853.0, 35884.0, 35914.0, 35945.0, 35975.0, 36006.0, 36037.0, 36067.0, 36098.0, 36128.0, 36159.0, 36190.0, 36218.0, 36249.0, 36279.0, 36310.0, 36340.0, 36371.0, 36402.0, 36432.0, 36463.0, 36493.0, 36524.0, 36555.0, 36584.0, 36615.0, 36645.0, 36676.0, 36706.0, 36737.0, 36768.0, 36798.0, 36829.0, 36859.0, 36890.0, 36921.0, 36949.0, 36980.0, 37010.0, 37041.0, 37071.0, 37102.0, 37133.0, 37163.0, 37194.0, 37224.0, 37255.0, 37286.0, 37314.0, 37345.0, 37375.0, 37406.0, 37436.0, 37467.0, 37498.0, 37528.0, 37559.0, 37589.0, 37620.0, 37651.0, 37679.0, 37710.0, 37740.0, 37771.0, 37801.0, 37832.0, 37863.0, 37893.0, 37924.0, 37954.0, 37985.0, 38016.0, 38045.0, 38076.0, 38106.0, 38137.0, 38167.0, 38198.0, 38229.0, 38259.0, 38290.0, 38320.0, 38351.0, 38382.0, 38410.0, 38441.0, 38471.0, 38502.0, 38532.0, 38563.0, 38594.0, 38624.0, 38655.0, 38685.0, 38716.0, 38747.0, 38775.0, 38806.0, 38836.0, 38867.0, 38897.0, 38928.0, 38959.0, 38989.0, 39020.0, 39050.0, 39081.0, 39112.0, 39140.0, 39171.0, 39201.0, 39232.0, 39262.0, 39293.0, 39324.0, 39354.0, 39385.0, 39415.0, 39446.0, 39477.0, 39506.0, 39537.0, 39567.0, 39598.0, 39628.0, 39659.0, 39690.0, 39720.0, 39751.0, 39781.0, 39812.0, 39843.0, 39871.0, 39902.0, 39932.0, 39963.0, 39993.0, 40024.0, 40055.0, 40085.0, 40116.0, 40146.0, 40177.0, 40208.0, 40236.0, 40267.0, 40297.0, 40328.0, 40358.0, 40389.0, 40420.0, 40450.0, 40481.0, 40511.0, 40542.0, 40573.0, 40601.0, 40632.0, 40662.0, 40693.0, 40723.0, 40754.0, 40785.0, 40815.0, 40846.0, 40876.0]
-    days = time_dim[0]
-
-    # Loop through variable, climate model and hydrological model combinations
-    print('\n')
-    image_count = 0
-    for var in ['var']:
-        tabs += 1
-        print('{0}{1}:\t{2}'.format('\t' * tabs, 'var', var))
-        for cm in cm_combinations:
-            tabs += 1
-            print('{0}{1}:\t{2}'.format('\t' * tabs, 'cm', cm))
-            for hm in hm_combinations:
-                tabs += 1
-                print('{0}{1}:\t{2}'.format('\t' * tabs, 'hm', hm))
-                for time in range(time_min, time_max + 1):
-                    tabs += 1
-                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'time', time))
-                    if output:
-                        print('{0}{1}:\t{2}'.format('\t' * tabs, 'days', days))
-                    date = STARTDATE + datetime.timedelta(days=days)
-                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'date', date.date().strftime('%Y%m%d')))
-                    tabs += 1
-                    image_count += 1
-                    image_file = '{0}_{1}_{2}_{3}.png'.format(var, cm, hm, date.date().strftime('%Y%m'))
-                    print('{0}{1}:\t{2}'.format('\t' * tabs, 'image_file', image_file))
-                    image_path = os.path.join(image_folder, image_file)
-                    for file in glob.glob(os.path.splitext(image_path)[0] + '.*'):
-                        # print('{0}{1:<12}:\t{2}'.format('\t' * tabs, 'file', file))
-                        os.remove(file)
-
-
-
-
-
-
-                    tabs -= 1
-
-                    tabs -= 1
-                tabs -= 1
-            tabs -= 1
-        tabs -= 1
-
-    print('{0}{1}:\t{2}'.format('\t' * tabs, 'image_count', image_count))
 
     sys.exit()
 
